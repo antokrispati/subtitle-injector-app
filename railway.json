@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "python auto_subtitle_injector_full.py",
+    "restartPolicyType": "ON_FAILURE",
+    "numReplicas": 1
+  }
+}

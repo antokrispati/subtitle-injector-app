@@ -1,0 +1,11 @@
+[phases.setup]
+cmds = [
+  "apt-get update",
+  "apt-get install -y ffmpeg python3-pip"
+]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "python auto_subtitle_injector_full.py"
