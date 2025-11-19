@@ -112,20 +112,6 @@ def create_ass_subtitle(text, start_time, end_time):
     start_ass = f"{int(start_time//3600):01d}:{int((start_time%3600)//60):02d}:{start_time%60:05.2f}"
     end_ass = f"{int(end_time//3600):01d}:{int((end_time%3600)//60):02d}:{end_time%60:05.2f}"
     return f"Dialogue: 0,{start_ass},{end_ass},Default,,0,0,0,,{text}"
-	
-def check_ffmpeg():
-	    """Check if FFmpeg is available."""
-    try:
-        rc, out, err = run_cmd("ffmpeg -version")
-        if rc == 0:
-            print("✅ FFmpeg is available")
-            return True
-        else:
-            print("❌ FFmpeg not found")
-            return False
-    except:
-        print("❌ FFmpeg check failed")
-        return False
 
 # --- FUNGSI BARU: Test Stream Accessibility ---
 def test_stream_accessibility(source_url: str):
@@ -1075,14 +1061,40 @@ async def cleanup_task(task_id: str):
     
     return {"status": "cleaned", "task_id": task_id}
 
+# === MODIFIKASI INI DI BAWAH FILE ===
 if __name__ == "__main__":
     print("\n" + "="*50)
     print("🚀 REAL-TIME SUBTITLE INJECTOR - FULL FEATURES")
     print("="*50)
-    print(f"Whisper Status: {'✅ READY' if whisper_model else '❌ NOT AVAILABLE'}")
+    
+    # Check FFmpeg
+    def check_ffmpeg():
+        try:
+            import subprocess
+            result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
+            if result.returncode == 0:
+                print("✅ FFmpeg is available")
+                return True
+            else:
+                print("❌ FFmpeg not found")
+                return False
+        except Exception as e:
+            print(f"❌ FFmpeg check failed: {e}")
+            return False
+    
+    check_ffmpeg()
+    
+    # Load Whisper model
+    try:
+        import whisper
+        whisper_model = whisper.load_model("base")  # Use smaller model for production
+        print("✅ Whisper base model loaded successfully")
+    except Exception as e:
+        print(f"❌ Whisper error: {e}")
+        whisper_model = None
+    
     print("="*50 + "\n")
     
     # Untuk production di Railway
-	check_ffmpeg()
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
