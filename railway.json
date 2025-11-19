@@ -1,7 +1,6 @@
 {
   "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile"
+    "builder": "NIXPACKS"
   },
   "deploy": {
     "startCommand": "python auto_subtitle_injector_full.py",
