@@ -1,0 +1,18 @@
+[phases.setup]
+cmds = [
+    "apt-get update",
+    "apt-get install -y ffmpeg",
+    "python -m venv /opt/venv"
+]
+
+[phases.install]
+cmds = [
+    "pip install --upgrade pip",
+    "pip install -r requirements.txt"
+]
+
+[start]
+cmd = "python auto_subtitle_injector_full.py"
+
+[environment]
+PATH = "/opt/venv/bin:$PATH"
