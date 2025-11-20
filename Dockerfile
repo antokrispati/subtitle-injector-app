@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies untuk Whisper + FFmpeg
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     git \
@@ -16,11 +16,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install PyTorch separately (CPU version)
+RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+
 # Copy app
 COPY . .
 
-# Pre-download Whisper model kecil saat build (opsional)
-RUN python -c "import whisper; whisper.load_model('small')"
-
 # Run app
-CMD python -m uvicorn auto_subtitle_injector_full.py:app --host 0.0.0.0 --port $PORT
+CMD python -m uvicorn auto_subtitle_injector_full:app --host 0.0.0.0 --port $PORT
