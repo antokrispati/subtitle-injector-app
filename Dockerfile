@@ -2,25 +2,19 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies termasuk CURL
+# Install minimal dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
-    git \
-    wget \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Install Python packages secara individual
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir \
-    fastapi \
-    uvicorn \
-    aiofiles \
-    ffmpeg-python \
-    requests \
-    googletrans==4.0.0-rc1 \
-    m3u8
+RUN pip install --no-cache-dir fastapi uvicorn aiofiles
+RUN pip install --no-cache-dir ffmpeg-python requests
+RUN pip install --no-cache-dir googletrans==4.0.0-rc1 m3u8
 
-COPY . .
+COPY main.py .
 
 CMD python -m uvicorn main:app --host 0.0.0.0 --port $PORT
