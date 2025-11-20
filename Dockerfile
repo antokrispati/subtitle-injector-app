@@ -43,7 +43,7 @@ tests/
 # Build stage
 FROM python:3.11-slim as builder
 WORKDIR /app
-COPY requirements.txt
+COPY requirements.txt .
 RUN pip install --user -r requirements.txt
 
 # Final stage
