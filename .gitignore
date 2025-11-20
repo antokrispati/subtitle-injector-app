@@ -1,63 +1,31 @@
-# Python
+# Folders besar
+asr_work/
+his_output/
+out/
+preview/
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
 
-# Virtual Environment
-venv/
-env/
-ENV/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# System files
+.git/
+.gitignore
 .DS_Store
 Thumbs.db
 
-# Windows
-AppData/
-NTUSER.DAT*
-ntuser.dat*
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
+# Python
+*.pyc
+*.pyo
+*.pyd
+.python/
+venv/
+env/
 
 # Logs
 *.log
+.pytest_cache/
+.coverage
 
-# Project specific
-asr_work/*
-!asr_work/.gitkeep
-out/*
-!out/.gitkeep
-hls_output/*
-!hls_output/.gitkeep
-preview/*
-!preview/.gitkeep
-
-# Large files
-*.mp4
-*.avi
-*.mkv
-*.wav
+# Temporary files
+*.tmp
+*.temp
+.cache/
