@@ -1,31 +1,13 @@
-# Folders besar
+.git
+__pycache__
+*.pyc
 asr_work/
 his_output/
 out/
 preview/
-__pycache__/
-*.egg-info/
-
-# System files
-.git/
-.gitignore
-.DS_Store
-Thumbs.db
-
-# Python
-*.pyc
-*.pyo
-*.pyd
-.python/
-venv/
-env/
-
-# Logs
-*.log
-.pytest_cache/
-.coverage
-
-# Temporary files
-*.tmp
-*.temp
 .cache/
+.whisper_cache/
+*.mp4
+*.avi
+*.mkv
+*.srt
