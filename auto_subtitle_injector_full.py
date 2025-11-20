@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse 
-import uvicorn, subprocess, aiofiles, uuid, os, asyncio, shlex, time
+import uvicorn, subprocess, aiofiles, uuid, os, asyncio, shlex, time, aiofiles
 import shutil
 import re 
 from typing import Optional
