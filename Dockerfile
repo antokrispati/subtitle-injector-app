@@ -2,9 +2,24 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y ffmpeg && apt-get clean
-RUN pip install --no-cache-dir fastapi uvicorn aiofiles ffmpeg-python openai-whisper
+# Install dependencies system
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY auto_subtitle_injector_full.py .
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    aiofiles \
+    ffmpeg-python \
+    requests \
+    googletrans==4.0.0-rc1 \
+    m3u8 \
+    asyncio
 
-CMD python -m uvicorn auto_subtitle_injector_full:app --host 0.0.0.0 --port $PORT
+COPY . .
+
+CMD python -m uvicorn main:app --host 0.0.0.0 --port $PORT
