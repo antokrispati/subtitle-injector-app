@@ -2,10 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies system
+# Install system dependencies termasuk CURL
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    curl \
     git \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -17,8 +19,7 @@ RUN pip install --no-cache-dir \
     ffmpeg-python \
     requests \
     googletrans==4.0.0-rc1 \
-    m3u8 \
-    asyncio
+    m3u8
 
 COPY . .
 
