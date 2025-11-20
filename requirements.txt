@@ -4,5 +4,3 @@ aiofiles==23.2.1
 ffmpeg-python==0.2.0
 requests==2.31.0
 googletrans==4.0.0-rc1
-m3u8==4.4.0
-asyncio==3.4.3
