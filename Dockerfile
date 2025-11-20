@@ -1,54 +1,27 @@
-# Gunakan base image yang lebih ringan
 FROM python:3.11-slim-bullseye
 
-# Set working directory
 WORKDIR /app
 
-# Copy requirements terlebih dahulu untuk caching
+# Install FFmpeg dari repo official (lebih kecil)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && curl -fsSL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ \
+    && mv ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ \
+    && mv ffmpeg-*-amd64-static/ffprobe /usr/local/bin/ \
+    && rm -rf ffmpeg-*-amd64-static \
+    && apt-get remove -y curl \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first untuk caching
 COPY requirements.txt .
 
-# Install dependencies system dan Python
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir --upgrade pip \
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy aplikasi
-COPY . .
+# Copy hanya file yang diperlukan
+COPY auto_subtitle_injector_full.py .
 
-# Set environment variables
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Perbaikan dari log yang ada:
-RUN python -m venv /opt/venv  # bukan "python -n venv"
-RUN pip install --upgrade pip  # bukan "--ungrade"
-
-# Buat .dockerignore file
-.git
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-env
-pip-log.txt
-.DS_Store
-README.md
-test/
-tests/
-.coverage
-.cache
-
-# Build stage
-FROM python:3.11-slim as builder
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --user -r requirements.txt
-
-# Final stage
-FROM python:3.11-slim
-WORKDIR /app
-COPY --from=builder /root/.local /root/.local
-COPY . .
-ENV PATH=/root/.local/bin:$PATH
+# Run the application
+CMD ["python", "auto_subtitle_injector_full.py"]
