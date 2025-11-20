@@ -17,4 +17,5 @@ RUN pip install --no-cache-dir googletrans==4.0.0-rc1 m3u8
 
 COPY main.py .
 
-CMD python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+RUN pip install gunicorn
+CMD gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT
