@@ -3,9 +3,7 @@ uvicorn
 pydantic
 aiofiles
 python-multipart
-openai-whisper
 deep-translator
 requests
 websockets
-torch
 numpy

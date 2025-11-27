@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 3. Pre-download Whisper Model 'small'
 # Langkah ini penting agar model tersimpan di dalam image Docker
 # dan tidak perlu didownload setiap kali aplikasi restart.
-RUN python -c "import whisper; print('Downloading model...'); whisper.load_model('small')"
+RUN pip install torch
 
 # 4. Copy kode aplikasi
 COPY auto_subtitle_injector.py .
