@@ -20,11 +20,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install torch
 
 # 4. Copy kode aplikasi
-COPY auto_subtitle_injector.py .
+COPY auto_subtitle_injector_full.py .
 
 # Buat folder output yang dibutuhkan
 RUN mkdir -p asr_work out
 
 # 5. Jalankan aplikasi
 # CMD akan menjalankan script python yang sudah kita update port-nya
-CMD ["python", "auto_subtitle_injector.py"]
+CMD ["python", "auto_subtitle_injector_full.py"]
