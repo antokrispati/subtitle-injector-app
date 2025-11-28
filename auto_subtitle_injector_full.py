@@ -51,24 +51,26 @@ active_tasks = {}
 hls_processes = {}
 subtitle_cache = {}
 
-# Whisper model
-try:
-    import whisper
-    ASR_BACKEND = 'whisper'
-    
-    # === PERBAIKAN KRITIS UNTUK CLOUD GRATISAN ===
-    # Menggunakan model 'tiny' agar muat di RAM 512MB. 
-    # Jangan ubah ke 'small' atau 'medium' kecuali server Anda punya RAM > 2GB.
-    print("⏳ Loading Whisper Model (Tiny)...")
-    whisper_model = whisper.load_model("tiny")
-    print("✅ Whisper tiny model loaded successfully")
-    
-except Exception as e:
-    print(f"❌ Whisper error: {e}")
-    ASR_BACKEND = None
-    whisper_model = None
+# Variabel Global untuk Whisper (Lazy Load)
+whisper_model = None
+ASR_BACKEND = 'whisper'
 
 # ---------- UTILITIES ----------
+def get_or_load_model():
+    """Fungsi Lazy Load: Memuat model hanya jika belum ada"""
+    global whisper_model
+    if whisper_model is None:
+        try:
+            import whisper
+            print("⏳ Initializing Whisper Model (Tiny) for the first time...")
+            # Gunakan 'tiny' untuk performa Cloud gratisan (Hemat RAM)
+            whisper_model = whisper.load_model("tiny")
+            print("✅ Whisper model loaded into memory!")
+        except Exception as e:
+            print(f"❌ Failed to load Whisper: {e}")
+            return None
+    return whisper_model
+
 def run_cmd(cmd):
     """Run command dengan timeout"""
     try:
@@ -98,10 +100,8 @@ def create_vtt_cue(start, end, text):
 
 def create_ass_subtitle(text, start_time, end_time):
     """Create ASS subtitle format untuk burned-in subtitles"""
-    # ASS time format: H:MM:SS.cc
     start_ass = f"{int(start_time//3600):01d}:{int((start_time%3600)//60):02d}:{start_time%60:05.2f}"
     end_ass = f"{int(end_time//3600):01d}:{int((end_time%3600)//60):02d}:{end_time%60:05.2f}"
-    # Escape koma dalam teks agar tidak merusak format ASS
     safe_text = text.replace(",", "\\N") 
     return f"Dialogue: 0,{start_ass},{end_ass},Default,,0,0,0,,{safe_text}"
 
@@ -125,7 +125,6 @@ def safe_path_windows(path):
     if path.startswith(('http://', 'https://', 'rtmp://', 'rtsp://')):
         return f'"{path}"'
     path = os.path.abspath(path).replace('\\', '/')
-    # Pada Windows FFmpeg filter graph, path harus di-escape secara khusus
     path = path.replace(':', '\\:')
     return f"'{path}'"
 
@@ -135,14 +134,9 @@ async def generate_preview_with_burned_subtitles(task_id: str, source_url: str, 
     
     try:
         source_url = source_url.replace('&amp;', '&')
-        # Opsi input untuk streaming yang lebih stabil
         ffmpeg_input = f'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i "{source_url}"'
         
         print(f"🎬 Generating preview for task {task_id}")
-        
-        # Gunakan ASS subtitles untuk burned-in effect
-        # -vf subtitles=... lebih simpel daripada ass=... di beberapa versi ffmpeg, tapi ass= lebih robust untuk styling
-        # Kita gunakan ass file path yang sudah di-escape
         
         cmd = (
             f'ffmpeg -y {ffmpeg_input} '
@@ -180,14 +174,12 @@ async def start_hls_stream(task_id: str, source_url: str, ass_path: str):
         source_url = source_url.replace('&amp;', '&')
         print(f"📡 Starting HLS stream process...")
         
-        # Command FFmpeg untuk HLS Streaming yang terus berjalan
-        # Menggunakan ASS filter untuk hardsub
         cmd = [
             'ffmpeg', '-y',
-            '-re', # Read input at native frame rate (penting untuk simulasi live output)
+            '-re', 
             '-i', source_url,
             '-vf', f"ass={safe_path_windows(ass_path)}",
-            '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-g', '60', # GOP size 60 (2s keyframe)
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-g', '60',
             '-c:a', 'aac', '-b:a', '96k',
             '-f', 'hls', 
             '-hls_time', '4', 
@@ -198,7 +190,6 @@ async def start_hls_stream(task_id: str, source_url: str, ass_path: str):
             m3u8_path
         ]
         
-        # Jalankan sebagai subprocess background
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE, 
@@ -216,14 +207,16 @@ async def start_hls_stream(task_id: str, source_url: str, ass_path: str):
 
 # ---------- REAL-TIME WORKER ----------
 async def realtime_subtitle_worker(task_id: str, source_url: str, source_lang: str, target_lang: str):
-    if not whisper_model:
+    # Lazy load model saat worker pertama kali dijalankan
+    model = get_or_load_model()
+    if not model:
+        print("❌ Cannot start worker: Whisper model failed to load")
         return
 
     # Setup Files
     vtt_path = os.path.join(OUTDIR, f'subtitles_{task_id}.vtt')
     ass_path = os.path.join(OUTDIR, f'subtitles_{task_id}.ass')
     
-    # Init Header Files
     with open(vtt_path, 'w', encoding='utf-8') as f:
         f.write("WEBVTT\n\n")
     with open(ass_path, 'w', encoding='utf-8') as f:
@@ -245,28 +238,23 @@ async def realtime_subtitle_worker(task_id: str, source_url: str, source_lang: s
     subtitle_cache[task_id] = []
     seq = 0
     
-    # Translator Setup
     translator = None
     if target_lang != 'original':
         translator = GoogleTranslator(source='auto', target=target_lang)
 
-    # Start HLS Stream Process di awal (walaupun subtitle file masih kosong)
-    # FFmpeg akan membaca file ASS yang akan kita update terus menerus
     hls_started = await start_hls_stream(task_id, source_url, ass_path)
     if hls_started:
         processing_status[task_id]['hls_ready'] = True
         processing_status[task_id]['hls_url'] = f'/hls/{task_id}/stream.m3u8'
 
-    # Loop Capture & Transcribe
     stream_start_time = time.time()
-    segment_duration = 5 # Capture durasi 5 detik
+    segment_duration = 5 
 
     while task_id in active_tasks:
         try:
             current_stream_time = time.time() - stream_start_time
             clip_file = os.path.join(WORKDIR, f'clip_{task_id}_{seq}.wav')
             
-            # Capture Audio
             cmd = (
                 f'ffmpeg -y -hide_banner -loglevel error '
                 f'-i "{source_url}" '
@@ -278,40 +266,33 @@ async def realtime_subtitle_worker(task_id: str, source_url: str, source_lang: s
             rc, out, err = run_cmd(cmd)
             
             if rc == 0 and os.path.exists(clip_file) and os.path.getsize(clip_file) > 1000:
-                # Transcribe
                 decode_options = {}
                 if source_lang != 'auto':
                     decode_options['language'] = source_lang
 
-                result = whisper_model.transcribe(clip_file, fp16=False, **decode_options)
+                # Transcribe menggunakan model yang sudah diload
+                result = model.transcribe(clip_file, fp16=False, **decode_options)
                 text_original = result.get('text', '').strip()
 
                 if text_original:
                     final_text = text_original
-                    
-                    # Translate
                     if translator:
                         try:
                             final_text = translator.translate(text_original)
                         except: pass
 
-                    # Timing
                     process_duration = time.time() - start_proc
-                    # Subtitle muncul di stream time saat ini + delay processing
                     sub_start = current_stream_time
                     sub_end = sub_start + segment_duration
                     
-                    # 1. Update VTT (untuk Soft Subtitle di Web Player)
                     vtt_cue = create_vtt_cue(sub_start, sub_end, final_text)
                     with open(vtt_path, 'a', encoding='utf-8') as f:
                         f.write(vtt_cue)
                     
-                    # 2. Update ASS (untuk Burned-in HLS & Preview)
                     ass_line = create_ass_subtitle(final_text, sub_start, sub_end)
                     with open(ass_path, 'a', encoding='utf-8') as f:
                         f.write(ass_line + '\n')
                     
-                    # 3. Update Cache & Status
                     log_msg = f"{final_text}"
                     if target_lang != 'original':
                         log_msg += f" ({text_original})"
@@ -323,20 +304,17 @@ async def realtime_subtitle_worker(task_id: str, source_url: str, source_lang: s
                         'start': sub_start, 'end': sub_end, 'text': final_text
                     })
                     
-                    # 4. Generate Preview Video (Sekali saja setelah ada 3 subtitle awal)
                     if not processing_status[task_id]['preview_ready'] and seq == 3:
                         preview = await generate_preview_with_burned_subtitles(task_id, source_url, ass_path)
                         if preview:
                             processing_status[task_id]['preview_ready'] = True
                             processing_status[task_id]['preview_file'] = preview
 
-                # Cleanup clip
                 try: os.remove(clip_file)
                 except: pass
             
             seq += 1
             
-            # Sleep adaptive
             elapsed = time.time() - start_proc
             sleep_time = max(0.5, segment_duration - elapsed)
             await asyncio.sleep(sleep_time)
@@ -345,7 +323,6 @@ async def realtime_subtitle_worker(task_id: str, source_url: str, source_lang: s
             print(f"Worker Error: {e}")
             await asyncio.sleep(1)
 
-    # Cleanup saat stop
     if task_id in hls_processes:
         try:
             hls_processes[task_id].terminate()
@@ -359,11 +336,13 @@ class StartRequest(BaseModel):
     source_lang: str = "auto"
     target_lang: str = "id"
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint untuk Cloud Service"""
+    return {"status": "ok", "whisper_loaded": whisper_model is not None}
+
 @app.post("/start")
 async def start_streaming(req: StartRequest, background: BackgroundTasks):
-    if not ASR_BACKEND:
-        return JSONResponse({"status": "error", "detail": "Whisper not available"})
-    
     task_id = str(uuid.uuid4())
     active_tasks[task_id] = True
     background.add_task(realtime_subtitle_worker, task_id, req.source_url, req.source_lang, req.target_lang)
