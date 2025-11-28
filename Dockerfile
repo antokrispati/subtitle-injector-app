@@ -2,12 +2,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install dependencies
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir fastapi uvicorn gunicorn
+# Install Python packages
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir fastapi uvicorn
 
-COPY . .
+# Copy app files
+COPY main.py .
 
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
+# Use Python executable directly
+CMD python -m uvicorn main:app --host 0.0.0.0 --port 8000
