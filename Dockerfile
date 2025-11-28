@@ -26,8 +26,9 @@ RUN pip install openai-whisper
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 6. Pre-download model Whisper 'small' agar start-up cepat
-RUN python -c "import whisper; print('Downloading model...'); whisper.load_model('small')"
+# 6. Pre-download model Whisper 'tiny' (Lebih Ringan)
+# MENGGANTI 'small' ke 'tiny' agar tidak crash di server dengan RAM kecil (512MB)
+RUN python -c "import whisper; print('Downloading model...'); whisper.load_model('tiny')"
 
 # 7. Copy kode aplikasi
 COPY auto_subtitle_injector_full.py .
