@@ -1,15 +1,17 @@
 """
 Auto Subtitle Injector - Real Time dengan Video Preview, HLS Output, dan Translasi
 
-Cara menjalankan:
-  1. Install system deps: ffmpeg (Pastikan ada di PATH)
-  2. Install Python deps:
-       pip install fastapi uvicorn pydantic aiofiles python-multipart openai-whisper deep-translator requests
-  3. Jalankan:
-       uvicorn auto_subtitle_injector_full:app --host 0.0.0.0 --port 8000
-  4. Buka di browser:
-       http://localhost:8000
+PENTING:
+Nama file ini sebaiknya 'auto_subtitle_injector.py'.
+Pastikan Dockerfile Anda memiliki baris: CMD ["python", "auto_subtitle_injector.py"]
+
+Cara menjalankan lokal:
+  uvicorn auto_subtitle_injector:app --host 0.0.0.0 --port 8000
 """
+
+# Print status awal segera untuk debugging di Cloud Logs
+import sys
+print("🔄 Initializing Python script...", flush=True)
 
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
@@ -20,7 +22,7 @@ import uvicorn, subprocess, aiofiles, uuid, os, asyncio, shlex, time, shutil, re
 from deep_translator import GoogleTranslator
 
 # ========== SETUP DASAR ==========
-app = FastAPI(title="Real Time Subtitle Injector - Full Features + Translation")
+app = FastAPI(title="Real Time Subtitle Injector")
 
 # Enable CORS
 app.add_middleware(
@@ -51,16 +53,19 @@ active_tasks = {}
 hls_processes = {}
 subtitle_cache = {}
 
-# Variabel Global untuk Whisper (Lazy Load) - Default None agar startup cepat
+# Variabel Global untuk Whisper (Lazy Load)
 whisper_model = None
 
+# ---------- STARTUP EVENT ----------
+@app.on_event("startup")
+async def startup_event():
+    """Logika saat aplikasi baru menyala"""
+    print(f"🚀 Application Startup Event Triggered", flush=True)
+    print(f"📂 Workdir: {WORKDIR}", flush=True)
+    
 # ---------- UTILITIES ----------
 def get_or_load_model():
-    """
-    Fungsi Lazy Load: 
-    Hanya mengimpor dan memuat model saat dibutuhkan (saat tombol Start ditekan).
-    Ini mencegah aplikasi Timeout saat deploy di Cloud.
-    """
+    """Fungsi Lazy Load: Memuat model hanya jika belum ada"""
     global whisper_model
     if whisper_model is None:
         try:
@@ -68,7 +73,7 @@ def get_or_load_model():
             import whisper
             
             print("⏳ Initializing Whisper Model (Tiny)...", flush=True)
-            # Gunakan 'tiny' agar muat di RAM Cloud gratisan (512MB)
+            # Gunakan 'tiny' untuk performa Cloud gratisan (Hemat RAM)
             whisper_model = whisper.load_model("tiny")
             print("✅ Whisper model loaded into memory!", flush=True)
         except Exception as e:
@@ -182,7 +187,6 @@ async def start_hls_stream(task_id: str, source_url: str, ass_path: str):
 
 # ---------- REAL-TIME WORKER ----------
 async def realtime_subtitle_worker(task_id: str, source_url: str, source_lang: str, target_lang: str):
-    # LAZY LOAD MODEL DI SINI (Bukan di global)
     model = get_or_load_model()
     if not model:
         print("❌ Cannot start worker: Whisper failed", flush=True)
@@ -427,6 +431,7 @@ async def index():
     return HTMLResponse(content=html)
 
 if __name__ == "__main__":
+    # Support PORT env var untuk cloud deployment
     port = int(os.environ.get("PORT", 8000))
     print(f"🚀 Starting server on port {port}...", flush=True)
     uvicorn.run(app, host="0.0.0.0", port=port)
