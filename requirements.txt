@@ -1,9 +1,2 @@
-fastapi
-uvicorn
-pydantic
-aiofiles
-python-multipart
-deep-translator
-requests
-websockets
-numpy
+fastapi==0.104.1
+uvicorn==0.24.0
