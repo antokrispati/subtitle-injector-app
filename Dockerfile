@@ -1,18 +1,18 @@
 # Gunakan Python versi ringan
 FROM python:3.10-slim
 
-# 1. Install System Dependencies (Wajib: FFmpeg & Git)
-# Kita tambahkan --no-install-recommends agar instalasi linux lebih kecil
+# 1. Install System Dependencies (Wajib: FFmpeg, Git, DAN CURL)
+# Menambahkan 'curl' karena wajib untuk Health Check di Railway/Cloud
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # 2. OPTIMASI KRITIS: Install PyTorch versi CPU (Hanya ~200MB)
 # Kita jalankan ini DULUAN agar build lebih cepat dan hemat memori
-# Perintah ini sekarang SUDAH BENAR (menggunakan RUN pip install)
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # 3. Install Whisper (akan menggunakan torch CPU yang sudah terinstal)
