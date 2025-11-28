@@ -31,11 +31,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python -c "import whisper; print('Downloading model...'); whisper.load_model('tiny')"
 
 # 7. Copy kode aplikasi
-COPY auto_subtitle_injector_full.py .
+COPY auto_subtitle_injector.py .
 
 # Buat folder output yang dibutuhkan
 RUN mkdir -p asr_work out hls_output preview
 
 # 8. Jalankan aplikasi
 # CMD akan menjalankan script python utama
-CMD ["python", "auto_subtitle_injector_full.py"]
+CMD ["python", "auto_subtitle_injector.py"]
