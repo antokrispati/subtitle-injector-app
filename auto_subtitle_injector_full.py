@@ -55,10 +55,14 @@ subtitle_cache = {}
 try:
     import whisper
     ASR_BACKEND = 'whisper'
-    print("⏳ Loading Whisper Model (Small)...")
-    # Model 'small' adalah keseimbangan terbaik untuk CPU realtime translation
-    whisper_model = whisper.load_model("small")
-    print("✅ Whisper small model loaded successfully")
+    
+    # === PERBAIKAN KRITIS UNTUK CLOUD GRATISAN ===
+    # Menggunakan model 'tiny' agar muat di RAM 512MB. 
+    # Jangan ubah ke 'small' atau 'medium' kecuali server Anda punya RAM > 2GB.
+    print("⏳ Loading Whisper Model (Tiny)...")
+    whisper_model = whisper.load_model("tiny")
+    print("✅ Whisper tiny model loaded successfully")
+    
 except Exception as e:
     print(f"❌ Whisper error: {e}")
     ASR_BACKEND = None
@@ -571,5 +575,7 @@ async def index():
     return HTMLResponse(content=html)
 
 if __name__ == "__main__":
+    # Support PORT env var untuk cloud deployment
     port = int(os.environ.get("PORT", 8000))
+    print(f"🚀 Starting server on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port)
