@@ -1,15 +1,14 @@
 from fastapi import FastAPI
 import os
-import socket
+import uvicorn
 
 app = FastAPI(title="Subtitle Translator API")
 
 @app.get("/")
 async def root():
     return {
-        "message": "Subtitle Translator API is running!",
-        "status": "success", 
-        "hostname": socket.gethostname(),
+        "message": "API is running successfully!",
+        "status": "active",
         "port": os.getenv("PORT", "8000")
     }
 
@@ -17,20 +16,7 @@ async def root():
 async def health():
     return {"status": "healthy", "service": "subtitle-translator"}
 
-@app.get("/test")
-async def test():
-    return {"test": "success", "data": "API is working perfectly!"}
-
-@app.get("/env")
-async def show_env():
-    return {
-        "port": os.getenv("PORT"),
-        "python_version": os.getenv("PYTHON_VERSION"),
-        "railway_environment": os.getenv("RAILWAY_ENVIRONMENT")
-    }
-
-# Penting untuk Railway
+# Penting: Handle port secara explicit
 if __name__ == "__main__":
-    import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port, access_log=True)
+    uvicorn.run(app, host="0.0.0.0", port=port)
